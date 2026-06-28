@@ -2100,7 +2100,7 @@ def test_oracle_document_schema_includes_ingestion_metadata_columns() -> None:
     assert "duplicate_of_document_id VARCHAR2(64)" in ddl
     assert "rag_documents_content_sha256_idx" in ddl
     assert "rag_documents_tenant_status_uploaded_idx" in ddl
-    assert "'UPLOADED', 'PREPROCESSING', 'INGESTING', 'REVIEW', 'CHUNKING', 'CHUNKED'," in ddl
+    assert "'UPLOADED', 'PREPROCESSING', 'PREPROCESSED', 'INGESTING', 'REVIEW'," in ddl
     assert "'INDEXING', 'INDEXED', 'ERROR'" in ddl
 
 
