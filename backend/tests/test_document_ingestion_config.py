@@ -347,9 +347,7 @@ def test_build_configuration_reports_serving_state_and_counts(
             "serving_knowledge_base_ids": ["kb-doc-1"],
         }
     ]
-    fake_oracle.extractions[("doc-1", group["extraction_recipe_id"])] = {
-        "status": "materialized"
-    }
+    fake_oracle.extractions[("doc-1", group["extraction_recipe_id"])] = {"status": "materialized"}
 
     current = client.get("/api/documents/doc-1/ingestion-config").json()["data"][
         "build_configurations"

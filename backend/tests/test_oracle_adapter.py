@@ -377,9 +377,7 @@ async def test_oracle_read_retries_one_recoverable_disconnect(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """recoverable な読取切断は新しい接続で1回だけ再試行する。"""
-    disconnect = RuntimeError(
-        SimpleNamespace(isrecoverable=True, full_code="DPY-4011")
-    )
+    disconnect = RuntimeError(SimpleNamespace(isrecoverable=True, full_code="DPY-4011"))
     pool = FakeOraclePool(
         execute_results=[[], [{"ok": 1}]],
         fetch_errors=[disconnect],
@@ -403,18 +401,14 @@ async def test_oracle_read_does_not_retry_more_than_once_or_nonrecoverable_error
 ) -> None:
     """再切断は2回で止め、非recoverable例外は即時に返す。"""
     errors = [
-        RuntimeError(
-            SimpleNamespace(isrecoverable=recoverable, full_code="DPY-4011")
-        )
+        RuntimeError(SimpleNamespace(isrecoverable=recoverable, full_code="DPY-4011"))
         for _ in range(expected_attempts)
     ]
     pool = FakeOraclePool(
         execute_results=[[] for _ in range(expected_attempts)],
         fetch_errors=errors,
     )
-    client = OracleClient(
-        settings=_oci_settings(), pool=pool, db_call_runner=_run_inline
-    )
+    client = OracleClient(settings=_oci_settings(), pool=pool, db_call_runner=_run_inline)
 
     with pytest.raises(RuntimeError):
         await client._fetch_all("SELECT 1 AS ok FROM DUAL")
