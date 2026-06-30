@@ -626,9 +626,7 @@ def _inferred_recipe_step_status(
     return DocumentRecipeStepStatus.PENDING
 
 
-def _recipe_steps(
-    row: Mapping[str, object], jobs: list[IngestionJob]
-) -> list[DocumentRecipeStep]:
+def _recipe_steps(row: Mapping[str, object], jobs: list[IngestionJob]) -> list[DocumentRecipeStep]:
     recipe_status = FileStatus(str(row.get("status") or FileStatus.UPLOADED.value))
     raw_failed_phase = row.get("failed_phase")
     failed_phase = IngestionJobPhase(str(raw_failed_phase)) if raw_failed_phase else None
@@ -677,9 +675,7 @@ async def _document_recipe_view(
     )
     jobs = [job for job in all_jobs if job.recipe_id == recipe_id]
     active_chunk_set_id = (
-        str(row["active_chunk_set_id"])
-        if row.get("active_chunk_set_id") is not None
-        else None
+        str(row["active_chunk_set_id"]) if row.get("active_chunk_set_id") is not None else None
     )
     config_revision = int(str(row.get("config_revision") or 1))
     materialized_revision = (
@@ -715,8 +711,7 @@ async def _document_recipe_view(
         config_revision=config_revision,
         materialized_revision=materialized_revision,
         searchable=(
-            active_chunk_set_id is not None
-            and str(row.get("chunk_set_status")) == "INDEXED"
+            active_chunk_set_id is not None and str(row.get("chunk_set_status")) == "INDEXED"
         ),
         needs_reprocessing=(
             materialized_revision is not None and config_revision != materialized_revision
@@ -761,9 +756,7 @@ async def create_document_recipe(
     return ApiResponse(data=await _document_recipe_view(oracle, row))
 
 
-@router.put(
-    "/{document_id}/recipes/{recipe_id}", response_model=ApiResponse[DocumentRecipeView]
-)
+@router.put("/{document_id}/recipes/{recipe_id}", response_model=ApiResponse[DocumentRecipeView])
 async def update_document_recipe(
     document_id: str, recipe_id: str, request: DocumentProcessingConfig
 ) -> ApiResponse[DocumentRecipeView]:
@@ -937,9 +930,7 @@ async def export_document_recipe_extraction(
     chunks: list[DocumentChunkView] = []
     if format == DocumentExtractionExportFormat.CHUNKS:
         chunk_set_id = row.get("active_chunk_set_id")
-        chunks = (
-            await oracle.list_chunk_set_chunks(str(chunk_set_id)) if chunk_set_id else []
-        )
+        chunks = await oracle.list_chunk_set_chunks(str(chunk_set_id)) if chunk_set_id else []
         payload = {"chunks": [chunk.model_dump(mode="json") for chunk in chunks]}
     content = _document_extraction_export_content(format, extraction, payload)
     return ApiResponse(
@@ -1406,9 +1397,7 @@ async def _materialize_experiment_candidate(
         recipe_id=job.recipe_id,
         recipe_revision=job.recipe_revision,
     )
-    extraction_recipe_id = compute_extraction_recipe_id(
-        detail.content_sha256, candidate_settings
-    )
+    extraction_recipe_id = compute_extraction_recipe_id(detail.content_sha256, candidate_settings)
     if job.recipe_id is not None and job.phase in {
         IngestionJobPhase.CHUNK,
         IngestionJobPhase.INDEX,
@@ -1451,9 +1440,7 @@ async def _materialize_experiment_candidate(
             document_id=job.document_id,
             recipe_id=job.recipe_id,
             extraction_recipe_id=extraction_recipe_id,
-            recipe_subset=_processing_recipe_snapshot(
-                candidate_config, effective_candidate_config
-            ),
+            recipe_subset=_processing_recipe_snapshot(candidate_config, effective_candidate_config),
             status="CHUNKED",
         )
         await oracle.mark_chunk_set_chunked(
@@ -1517,9 +1504,7 @@ async def _materialize_experiment_candidate(
             if recipe_status in {FileStatus.PREPROCESSED, FileStatus.REVIEW}:
                 return
             active_extraction_recipe_id = (
-                recipe_row.get("active_extraction_recipe_id")
-                if recipe_row is not None
-                else None
+                recipe_row.get("active_extraction_recipe_id") if recipe_row is not None else None
             )
             if active_extraction_recipe_id is None:
                 raise IngestionUserError("索引対象の抽出結果が見つかりません。")
@@ -2296,9 +2281,7 @@ async def _apply_recipe_review_text_edits(
         recipe_settings = recipe_settings.model_copy(
             update={"rag_preprocess_profile": recipe_subset["rag_preprocess_profile"]}
         )
-    base_extraction_recipe_id = compute_extraction_recipe_id(
-        detail.content_sha256, recipe_settings
-    )
+    base_extraction_recipe_id = compute_extraction_recipe_id(detail.content_sha256, recipe_settings)
     scoped_extraction_recipe_id = compute_document_recipe_extraction_id(
         base_extraction_recipe_id,
         recipe_id,
@@ -3503,9 +3486,7 @@ async def _enqueue_failed_segment_retry_job_for_document(
         if recipe is None:
             raise HTTPException(status_code=404, detail="レシピが見つかりません。")
         raw_artifact = recipe.get("preprocess_artifact")
-        artifact = (
-            DocumentPreprocessArtifact.model_validate(raw_artifact) if raw_artifact else None
-        )
+        artifact = DocumentPreprocessArtifact.model_validate(raw_artifact) if raw_artifact else None
         if artifact is None or not artifact.object_storage_path:
             raise HTTPException(
                 status_code=409,
@@ -3513,8 +3494,7 @@ async def _enqueue_failed_segment_retry_job_for_document(
             )
         segments = await oracle.list_ingestion_segments(document_id)
         if not any(
-            segment.recipe_id == recipe_id and segment.status == "FAILED"
-            for segment in segments
+            segment.recipe_id == recipe_id and segment.status == "FAILED" for segment in segments
         ):
             raise HTTPException(
                 status_code=409,

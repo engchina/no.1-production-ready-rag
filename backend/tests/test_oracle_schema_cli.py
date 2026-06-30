@@ -235,9 +235,7 @@ def test_oracle_schema_migration_sql_adds_ingestion_job_attempt_counters() -> No
     assert "RAG_CHUNK_SETS_RECIPE_ACTIVE_UIDX" in sql
     assert len(statements) == 45
     assert all(
-        statement.startswith(
-            ("-- migration:", "DECLARE", "INSERT", "MERGE", "UPDATE", "COMMIT")
-        )
+        statement.startswith(("-- migration:", "DECLARE", "INSERT", "MERGE", "UPDATE", "COMMIT"))
         for statement in statements
     )
 
@@ -279,9 +277,9 @@ def test_oracle_schema_migration_manifest_is_deterministic() -> None:
         "20260629_003_ingestion_jobs_settings_overrides",
         "20260629_004_documents_processing_config",
         "20260630_001_default_knowledge_base_name",
-            "20260630_002_default_business_view",
-            "20260630_003_document_recipes",
-        ]
+        "20260630_002_default_business_view",
+        "20260630_003_document_recipes",
+    ]
 
 
 def test_oracle_schema_cli_writes_sql_and_manifest(tmp_path: Path) -> None:

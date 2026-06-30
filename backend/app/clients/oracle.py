@@ -938,11 +938,7 @@ class OracleClient:
             processing_config: dict[str, object] = {}
             if copy_from_recipe_id is not None:
                 source = next(
-                    (
-                        row
-                        for row in rows
-                        if str(row.get("recipe_id")) == copy_from_recipe_id
-                    ),
+                    (row for row in rows if str(row.get("recipe_id")) == copy_from_recipe_id),
                     None,
                 )
                 if source is None:
@@ -1138,18 +1134,20 @@ class OracleClient:
                 else None
             ),
             "active_extraction_recipe_id": active_extraction_recipe_id,
-            "started_at": datetime.now(UTC)
-            if status
-            in {
-                FileStatus.PREPROCESSING,
-                FileStatus.INGESTING,
-                FileStatus.CHUNKING,
-                FileStatus.INDEXING,
-            }
-            else None,
-            "finished_at": datetime.now(UTC)
-            if status in {FileStatus.INDEXED, FileStatus.ERROR}
-            else None,
+            "started_at": (
+                datetime.now(UTC)
+                if status
+                in {
+                    FileStatus.PREPROCESSING,
+                    FileStatus.INGESTING,
+                    FileStatus.CHUNKING,
+                    FileStatus.INDEXING,
+                }
+                else None
+            ),
+            "finished_at": (
+                datetime.now(UTC) if status in {FileStatus.INDEXED, FileStatus.ERROR} else None
+            ),
         }
 
         def operation(connection: OracleConnectionProtocol) -> None:
@@ -6880,9 +6878,7 @@ class OracleClient:
                     entity_ids=existing_entity_ids,
                 )
             else:
-                existing_entity_ids = _select_graph_entity_ids_for_document(
-                    connection, document_id
-                )
+                existing_entity_ids = _select_graph_entity_ids_for_document(connection, document_id)
                 _delete_graph_rows_for_document(
                     connection,
                     document_id=document_id,
@@ -8438,8 +8434,7 @@ def _oracle_retrieval_where(filters: dict[str, str]) -> tuple[str, dict[str, obj
     if not explicit_chunk_set_id:
         # 1 文書 1〜3 レシピ: 各レシピの直近成功出力だけを常に融合検索する。
         # 旧 schema の未タグ chunk はレシピ行がまだ無い文書に限り後方互換で採用する。
-        clauses.append(
-            """
+        clauses.append("""
             (
                 EXISTS (
                     SELECT 1
@@ -8458,8 +8453,7 @@ def _oracle_retrieval_where(filters: dict[str, str]) -> tuple[str, dict[str, obj
                     )
                 )
             )
-            """
-        )
+            """)
     knowledge_base_ids = _filter_id_values(filters.get("knowledge_base_id"))
     knowledge_base_filter_sql = ""
     if knowledge_base_ids:
@@ -9162,9 +9156,7 @@ def _document_recipe_row(row: Mapping[str, object]) -> dict[str, object]:
         "status": str(normalized.get("status") or FileStatus.UPLOADED.value),
         "failed_phase": _optional_str(normalized.get("failed_phase")),
         "preprocess_artifact": _json_loads(normalized.get("preprocess_artifact")) or None,
-        "active_extraction_recipe_id": _optional_str(
-            normalized.get("active_extraction_recipe_id")
-        ),
+        "active_extraction_recipe_id": _optional_str(normalized.get("active_extraction_recipe_id")),
         "active_chunk_set_id": _optional_str(normalized.get("active_chunk_set_id")),
         "chunk_count": _int_value(normalized.get("chunk_count")),
         "vector_count": _int_value(normalized.get("vector_count")),

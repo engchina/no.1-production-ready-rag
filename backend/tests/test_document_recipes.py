@@ -102,9 +102,7 @@ async def test_recipe_segment_retry_creates_extract_job_for_same_recipe(
                 uploaded_at=datetime.now(UTC),
             )
 
-        async def get_document_recipe(
-            self, document_id: str, recipe_id: str
-        ) -> dict[str, object]:
+        async def get_document_recipe(self, document_id: str, recipe_id: str) -> dict[str, object]:
             return {
                 "document_id": document_id,
                 "recipe_id": recipe_id,
@@ -146,9 +144,7 @@ async def test_recipe_segment_retry_creates_extract_job_for_same_recipe(
     monkeypatch.setattr(documents_route, "OracleClient", lambda: fake)
     monkeypatch.setattr(documents_route, "_dispatch_ingestion_job", lambda _job_id: None)
 
-    job = await _enqueue_failed_segment_retry_job_for_document(
-        "doc-1", recipe_id="recipe-1"
-    )
+    job = await _enqueue_failed_segment_retry_job_for_document("doc-1", recipe_id="recipe-1")
 
     assert job.recipe_id == "recipe-1"
     assert job.recipe_revision == 7
@@ -171,9 +167,7 @@ async def test_recipe_segment_retry_ignores_other_recipe_failures(
                 uploaded_at=datetime.now(UTC),
             )
 
-        async def get_document_recipe(
-            self, document_id: str, recipe_id: str
-        ) -> dict[str, object]:
+        async def get_document_recipe(self, document_id: str, recipe_id: str) -> dict[str, object]:
             return {
                 "document_id": document_id,
                 "recipe_id": recipe_id,
@@ -200,9 +194,7 @@ async def test_recipe_segment_retry_ignores_other_recipe_failures(
     monkeypatch.setattr(documents_route, "OracleClient", FakeOracle)
 
     with pytest.raises(HTTPException) as exc_info:
-        await _enqueue_failed_segment_retry_job_for_document(
-            "doc-1", recipe_id="recipe-1"
-        )
+        await _enqueue_failed_segment_retry_job_for_document("doc-1", recipe_id="recipe-1")
 
     assert exc_info.value.status_code == 409
 
@@ -225,9 +217,7 @@ async def test_recipe_review_edit_copies_shared_extraction_before_pointer_switch
                 uploaded_at=datetime.now(UTC),
             )
 
-        async def get_document_recipe(
-            self, document_id: str, recipe_id: str
-        ) -> dict[str, object]:
+        async def get_document_recipe(self, document_id: str, recipe_id: str) -> dict[str, object]:
             return {
                 "document_id": document_id,
                 "recipe_id": recipe_id,
@@ -255,9 +245,7 @@ async def test_recipe_review_edit_copies_shared_extraction_before_pointer_switch
     fake = FakeOracle()
     monkeypatch.setattr(documents_route, "OracleClient", lambda: fake)
 
-    await _apply_recipe_review_text_edits(
-        "doc-1", "recipe-1", DocumentReviewEditsRequest()
-    )
+    await _apply_recipe_review_text_edits("doc-1", "recipe-1", DocumentReviewEditsRequest())
 
     assert fake.upsert is not None
     assert fake.upsert["extraction_recipe_id"] != "er_shared"

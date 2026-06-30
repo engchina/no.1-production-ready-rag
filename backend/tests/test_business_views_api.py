@@ -93,10 +93,7 @@ class FakeBusinessViewOracle:
             if (status is None or view.status == status)
             and (query is None or query.casefold() in view.name.casefold())
         ]
-        items.sort(
-            key=lambda view: view.name.casefold()
-            != DEFAULT_BUSINESS_VIEW_NAME.casefold()
-        )
+        items.sort(key=lambda view: view.name.casefold() != DEFAULT_BUSINESS_VIEW_NAME.casefold())
         return items[offset : (offset + limit) if limit is not None else None]
 
     async def count_business_views(

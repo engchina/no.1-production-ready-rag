@@ -341,9 +341,8 @@ class IngestionPipeline:
                         fallback_content_type=parse_content_type,
                     )
                 if (
-                    (manage_document_state or self._recipe_id is not None)
-                    and not self._settings.rag_auto_parse_after_preprocess_enabled
-                ):
+                    manage_document_state or self._recipe_id is not None
+                ) and not self._settings.rag_auto_parse_after_preprocess_enabled:
                     # ファイル準備ゲート: PREPROCESSED で停止し、人の承認(または KB/全体
                     # 設定で自動進行)で EXTRACT ジョブを別途投入して parse へ進む。
                     # candidate モードはゲートを無視して必ず索引まで進める。
@@ -525,9 +524,8 @@ class IngestionPipeline:
                 document_id, source_profile, extraction
             )
             if (
-                (manage_document_state or self._recipe_id is not None)
-                and self._settings.rag_review_gate_enabled
-            ):
+                manage_document_state or self._recipe_id is not None
+            ) and self._settings.rag_review_gate_enabled:
                 # REVIEW で停止する前に抽出本文を永続化し、プレビュー・後段 CHUNK で再利用する。
                 # candidate モードは REVIEW で止めず索引まで進める。
                 if self._recipe_id is not None:
@@ -833,9 +831,7 @@ class IngestionPipeline:
                 if detail is None:
                     raise IngestionUserError("ドキュメントが見つかりません。")
             else:
-                detail = await self._oracle.update_document_status(
-                    document_id, FileStatus.CHUNKED
-                )
+                detail = await self._oracle.update_document_status(document_id, FileStatus.CHUNKED)
             if record_outcome:
                 record_ingestion("review", len(chunks))
                 record_rag_ingestion_audit(

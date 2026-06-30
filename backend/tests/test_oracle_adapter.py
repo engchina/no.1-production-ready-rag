@@ -650,8 +650,7 @@ async def test_oracle_client_rejects_recipe_job_before_insert(
         await client.create_ingestion_job(job)
 
     assert not any(
-        "INSERT INTO rag_ingestion_jobs" in call.statement
-        for call in pool.connection.calls
+        "INSERT INTO rag_ingestion_jobs" in call.statement for call in pool.connection.calls
     )
 
 
