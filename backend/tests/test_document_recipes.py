@@ -287,5 +287,6 @@ async def test_list_document_recipes_fetches_jobs_once_for_all_recipes(
 
     result = await documents_route.list_document_recipes("doc-1")
 
+    assert result.data is not None
     assert len(result.data) == 3
     assert fake.job_list_calls == 1
