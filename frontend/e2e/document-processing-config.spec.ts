@@ -223,7 +223,7 @@ test("処理途中の文書は設定を編集できない", async ({ page }) => 
   const panel = page.getByRole("region", { name: "この文書のレシピ" });
   await panel.getByRole("button", { name: "処理設定を編集" }).click();
 
-  await expect(panel).toContainText("処理途中または取込ジョブ実行中は設定を変更できません");
+  await expect(panel).toContainText("処理途中または文書処理の実行中は設定を変更できません");
   await expect(
     panel.getByRole("group", { name: "文書解析" }).getByText("上書き")
   ).toBeDisabled();
