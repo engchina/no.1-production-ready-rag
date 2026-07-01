@@ -125,6 +125,52 @@ function chunkJob() {
   };
 }
 
+function recipeView() {
+  return {
+    recipe_id: "recipe-1",
+    document_id: DOC_ID,
+    slot_no: 1 as const,
+    status: "REVIEW",
+    failed_phase: null,
+    processing_config: {},
+    effective_processing_config: {},
+    preprocess_artifact: {
+      derivation_id: "prepared-1",
+      profile: "text_normalize",
+      converted: true,
+      converter_name: "text_normalize",
+      converter_version: "v1",
+      source_content_type: "text/plain",
+      source_sha256: "a".repeat(64),
+      object_storage_path: "local://policy__prepared.txt",
+      content_type: "text/plain",
+      sha256: "b".repeat(64),
+      file_name: "policy__prepared.txt",
+      page_map: {},
+      warnings: [],
+    },
+    active_extraction_recipe_id: "er-recipe-1-r1",
+    active_chunk_set_id: null,
+    chunk_count: 0,
+    vector_count: 0,
+    config_revision: 1,
+    materialized_revision: null,
+    searchable: false,
+    needs_reprocessing: false,
+    error_message: null,
+    steps: [
+      { phase: "PREPROCESS", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+      { phase: "EXTRACT", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+      { phase: "CHUNK", status: "PENDING", started_at: null, finished_at: null, error_message: null },
+      { phase: "INDEX", status: "PENDING", started_at: null, finished_at: null, error_message: null },
+    ],
+    created_at: "2026-06-18T00:00:00Z",
+    updated_at: "2026-06-18T00:00:05Z",
+    started_at: null,
+    finished_at: null,
+  };
+}
+
 async function mockReviewWorkspace(page: Page) {
   const calls: {
     approve: number;
@@ -132,6 +178,7 @@ async function mockReviewWorkspace(page: Page) {
     approveBody: unknown;
     saveBody: unknown;
   } = { approve: 0, save: 0, approveBody: null, saveBody: null };
+  const extraction = structuredClone(reviewDocumentDetail("REVIEW").extraction);
   await mockDatabaseReady(page);
   await page.route("**/api/auth/me", (route) => route.fulfill({ json: authStatus }));
   await page.route("**/api/knowledge-bases**", (route) =>
@@ -143,59 +190,44 @@ async function mockReviewWorkspace(page: Page) {
       },
     })
   );
-  await page.route(`**/api/documents/${DOC_ID}/approve`, async (route) => {
+  await page.route(`**/api/documents/${DOC_ID}/recipes`, (route) =>
+    route.fulfill({ json: { data: [recipeView()], error_messages: [], warning_messages: [] } })
+  );
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/approve`, async (route) => {
     calls.approve += 1;
     const post = route.request().postData();
     calls.approveBody = post ? JSON.parse(post) : null;
     await route.fulfill({ json: { data: chunkJob(), error_messages: [], warning_messages: [] } });
   });
-  await page.route(`**/api/documents/${DOC_ID}/review-edits`, async (route) => {
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/review-edits`, async (route) => {
     calls.save += 1;
     const body = route.request().postDataJSON() as {
       element_edits?: { element_id: string; text: string }[];
       table_cell_edits?: { table_id: string; row: number; col: number; text: string }[];
     };
     calls.saveBody = body;
-    const detail = reviewDocumentDetail("REVIEW");
     for (const edit of body.element_edits ?? []) {
-      const element = detail.extraction.elements.find((item) => item.element_id === edit.element_id);
+      const element = extraction.elements.find((item) => item.element_id === edit.element_id);
       if (element) element.text = edit.text;
     }
     for (const edit of body.table_cell_edits ?? []) {
-      const table = detail.extraction.tables.find((item) => item.table_id === edit.table_id);
+      const table = extraction.tables.find((item) => item.table_id === edit.table_id);
       const cell = table?.cells.find((item) => item.row === edit.row && item.col === edit.col);
       if (cell) cell.text = edit.text;
     }
-    detail.extraction.raw_text = detail.extraction.elements.map((item) => item.text).join("\n");
+    extraction.raw_text = extraction.elements.map((item) => item.text).join("\n");
     await route.fulfill({
-      json: { data: detail, error_messages: [], warning_messages: [] },
+      json: { data: recipeView(), error_messages: [], warning_messages: [] },
     });
   });
-  await page.route(`**/api/documents/${DOC_ID}/chunks`, (route) =>
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/ingestion-jobs**`, (route) =>
+    route.fulfill({ json: { data: chunkJob(), error_messages: [], warning_messages: [] } })
+  );
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/chunks`, (route) =>
     route.fulfill({ json: { data: [], error_messages: [], warning_messages: [] } })
   );
   await page.route(`**/api/documents/${DOC_ID}/chunk-sets`, (route) =>
     route.fulfill({ json: { data: [], error_messages: [], warning_messages: [] } })
-  );
-  await page.route(`**/api/documents/${DOC_ID}/ingestion-config`, (route) =>
-    route.fulfill({
-      json: {
-        data: {
-          document_id: DOC_ID,
-          is_indexed: false,
-          owning_knowledge_base: { id: "kb-1", name: "社内規程" },
-          effective_chunking_strategy: "structure_aware",
-          effective_parser_adapter_backend: "local_text_structure",
-          observed_chunking_strategy: null,
-          observed_parser_backend: null,
-          chunking_drift: false,
-          parser_drift: false,
-          config_drift: false,
-        },
-        error_messages: [],
-        warning_messages: [],
-      },
-    })
   );
   await page.route(`**/api/documents/${DOC_ID}/ingestion-segments`, (route) =>
     route.fulfill({ json: { data: [], error_messages: [], warning_messages: [] } })
@@ -209,7 +241,7 @@ async function mockReviewWorkspace(page: Page) {
   await page.route(`**/api/documents/${DOC_ID}/knowledge-bases`, (route) =>
     route.fulfill({ json: { data: [{ id: "kb-1", name: "社内規程" }], error_messages: [], warning_messages: [] } })
   );
-  await page.route(`**/api/documents/${DOC_ID}/extraction-export**`, (route) =>
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/extraction-export**`, (route) =>
     route.fulfill({
       json: {
         data: {
@@ -218,13 +250,13 @@ async function mockReviewWorkspace(page: Page) {
           format: "markdown",
           content_type: "text/markdown; charset=utf-8",
           content: "# 経費申請\n\n交通費は1000円です。",
-          payload: {},
+          payload: extraction,
           chunks: [],
           parser_backend: "local_partition",
           parser_profile: "local_text_structure",
           page_count: 1,
-          element_count: 1,
-          table_count: 0,
+          element_count: extraction.elements.length,
+          table_count: extraction.tables.length,
           asset_count: 0,
         },
         error_messages: [],
@@ -232,7 +264,10 @@ async function mockReviewWorkspace(page: Page) {
       },
     })
   );
-  await page.route(`**/api/documents/${DOC_ID}/content`, (route) =>
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/content**`, (route) =>
+    route.fulfill({ status: 200, contentType: "text/plain", body: "経費申請\n交通費は1000円です。" })
+  );
+  await page.route(`**/api/documents/${DOC_ID}/content**`, (route) =>
     route.fulfill({ status: 200, contentType: "text/plain", body: "経費申請\n交通費は1000円です。" })
   );
   // 詳細はテストごとに上書きできるよう最後に登録。
@@ -365,7 +400,7 @@ test("表セルの修正を下書き保存すると table_cell_edits を送信�
 
 test("下書き保存に失敗しても入力と未保存状態を保持する", async ({ page }) => {
   await mockReviewWorkspace(page);
-  await page.route(`**/api/documents/${DOC_ID}/review-edits`, (route) =>
+  await page.route(`**/api/documents/${DOC_ID}/recipes/recipe-1/review-edits`, (route) =>
     route.fulfill({
       status: 500,
       json: {
@@ -426,7 +461,7 @@ test("未保存変更がある状態でページを離れると破棄確認を�
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByText("未保存の変更を破棄しますか?")).toBeVisible();
   await dialog.getByRole("button", { name: "キャンセル" }).click();
-  await expect(page).toHaveURL(new RegExp(`/documents/${DOC_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/documents/${DOC_ID}(\\?recipe=recipe-1)?$`));
   await expect(page.locator("#review-edit-el-0000")).toHaveValue("未保存の変更");
 });
 

@@ -46,25 +46,45 @@ async function mockWorkspace(
       json: ok({ items: [{ id: "kb-1", name: "社内規程" }], total: 1, limit: 100, offset: 0, has_next: false }),
     })
   );
-  await page.route("**/api/documents/doc-1/ingestion-config", (route) =>
+  await page.route("**/api/documents/doc-1/recipes", (route) =>
     route.fulfill({
-      json: ok({
-        document_id: "doc-1",
-        is_indexed: true,
-        owning_knowledge_base: { id: "kb-1", name: "社内規程" },
-        effective_preprocess_profile: "office_to_pdf",
-        effective_chunking_strategy: "page_level",
-        effective_parser_adapter_backend: "docling",
-        observed_chunking_strategy: "page_level",
-        observed_parser_backend: "docling",
-        chunking_drift: false,
-        parser_drift: false,
-        config_drift: false,
-      }),
+      json: ok([
+        {
+          recipe_id: "recipe-1",
+          document_id: "doc-1",
+          slot_no: 1,
+          status: "INDEXED",
+          failed_phase: null,
+          processing_config: {},
+          effective_processing_config: {},
+          preprocess_artifact: preprocessArtifact,
+          active_extraction_recipe_id: "er-recipe-1-r1",
+          active_chunk_set_id: "chunk-set-recipe-1",
+          chunk_count: 2,
+          vector_count: 2,
+          config_revision: 1,
+          materialized_revision: 1,
+          searchable: true,
+          needs_reprocessing: false,
+          error_message: null,
+          steps: [
+            { phase: "PREPROCESS", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+            { phase: "EXTRACT", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+            { phase: "CHUNK", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+            { phase: "INDEX", status: "SUCCEEDED", started_at: null, finished_at: null, error_message: null },
+          ],
+          created_at: "2026-06-15T00:00:00Z",
+          updated_at: "2026-06-15T00:00:20Z",
+          started_at: null,
+          finished_at: "2026-06-15T00:00:20Z",
+        },
+      ]),
     })
   );
+  await page.route("**/api/documents/doc-1/recipes/recipe-1/chunks", (route) =>
+    route.fulfill({ json: ok([]) })
+  );
   await page.route("**/api/documents/doc-1/ingestion-jobs**", (route) => route.fulfill({ json: ok([]) }));
-  await page.route("**/api/documents/doc-1/chunks", (route) => route.fulfill({ json: ok([]) }));
   await page.route("**/api/documents/doc-1/chunk-sets", (route) => route.fulfill({ json: ok([]) }));
   await page.route("**/api/documents/doc-1/ingestion-segments", (route) =>
     route.fulfill({ json: ok([]) })
@@ -72,7 +92,7 @@ async function mockWorkspace(
   await page.route("**/api/documents/doc-1/knowledge-bases", (route) =>
     route.fulfill({ json: ok([{ id: "kb-1", name: "社内規程" }]) })
   );
-  await page.route("**/api/documents/doc-1/extraction-export**", (route) =>
+  await page.route("**/api/documents/doc-1/recipes/recipe-1/extraction-export**", (route) =>
     route.fulfill({
       json: ok({
         document_id: "doc-1",
@@ -94,8 +114,11 @@ async function mockWorkspace(
   await page.route("**/api/documents/doc-1/content**", (route) =>
     route.fulfill({ status: 204, body: "" })
   );
+  await page.route("**/api/documents/doc-1/recipes/recipe-1/content**", (route) =>
+    route.fulfill({ status: 204, body: "" })
+  );
   await page.route("**/api/documents/doc-1", (route) =>
-    route.fulfill({ json: ok({ ...documentDetail, preprocess_artifact: preprocessArtifact }) })
+    route.fulfill({ json: ok(documentDetail) })
   );
 }
 
@@ -132,7 +155,7 @@ test("処理後 PDF が無い Office 原本は案内だけを表示し、ダウ�
   ).toBeVisible();
   await expect(
     previewPanel.getByRole("link", { name: "ダウンロード", exact: true })
-  ).toHaveAttribute("href", /\/api\/documents\/doc-1\/content\?disposition=attachment$/);
+  ).toHaveAttribute("href", /\/api\/documents\/doc-1\/recipes\/recipe-1\/content\?disposition=attachment$/);
   await expect(
     previewPanel.getByRole("link", { name: "ファイルをダウンロード", exact: true })
   ).toHaveCount(0);

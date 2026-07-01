@@ -21,6 +21,7 @@ import { DocumentProcessingConfigPanel } from "./DocumentProcessingConfigPanel";
 import {
   canAddRecipe,
   canDeleteRecipe,
+  recipeConfigLocked,
   recipeIsActive,
   resolveSelectedRecipe,
 } from "./DocumentRecipeManager.logic";
@@ -313,7 +314,7 @@ export function DocumentRecipeManager({
             loading={false}
             error={null}
             onRetry={onRetry}
-            disabled={active}
+            disabled={recipeConfigLocked(selected)}
           />
         </div>
         <RecipeComparison documentId={documentId} recipes={recipes} />

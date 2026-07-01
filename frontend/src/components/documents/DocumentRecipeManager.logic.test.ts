@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAddRecipe,
   canDeleteRecipe,
+  recipeConfigLocked,
   recipeIsActive,
   resolveSelectedRecipe,
 } from "./DocumentRecipeManager.logic";
@@ -36,13 +37,14 @@ const emptyConfig: DocumentProcessingConfig = {
 function recipe(
   recipeId: string,
   slotNo: 1 | 2 | 3,
-  stepStatus: DocumentRecipeView["steps"][number]["status"] = "PENDING"
+  stepStatus: DocumentRecipeView["steps"][number]["status"] = "PENDING",
+  status: DocumentRecipeView["status"] = "UPLOADED"
 ): DocumentRecipeView {
   return {
     recipe_id: recipeId,
     document_id: "doc-1",
     slot_no: slotNo,
-    status: "UPLOADED",
+    status,
     failed_phase: null,
     processing_config: emptyConfig,
     effective_processing_config: emptyConfig,
@@ -91,5 +93,13 @@ describe("DocumentRecipeManager logic", () => {
     expect(recipeIsActive(recipe("running", 1, "RUNNING"))).toBe(true);
     expect(recipeIsActive(recipe("done", 1, "SUCCEEDED"))).toBe(false);
     expect(canDeleteRecipe(2, true)).toBe(false);
+  });
+
+  it("実行中ジョブが無くても確認待ち等の非編集ステータスは処理設定編集を止める", () => {
+    expect(recipeConfigLocked(recipe("uploaded", 1, "SUCCEEDED", "UPLOADED"))).toBe(false);
+    expect(recipeConfigLocked(recipe("indexed", 1, "SUCCEEDED", "INDEXED"))).toBe(false);
+    expect(recipeConfigLocked(recipe("error", 1, "SUCCEEDED", "ERROR"))).toBe(false);
+    expect(recipeConfigLocked(recipe("review", 1, "SUCCEEDED", "REVIEW"))).toBe(true);
+    expect(recipeConfigLocked(recipe("running", 1, "RUNNING", "INGESTING"))).toBe(true);
   });
 });

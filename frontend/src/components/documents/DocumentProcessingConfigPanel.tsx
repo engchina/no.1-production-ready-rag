@@ -260,7 +260,7 @@ export function DocumentProcessingConfigPanel({
           size="sm"
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
-          disabled={loading || Boolean(error) || !data || disabled}
+          disabled={loading || Boolean(error) || !data}
           className="min-h-9 shrink-0"
         >
           <ChevronDown

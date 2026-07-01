@@ -82,6 +82,10 @@ async function mockKbPage(page: Page, indexedDocumentCount: number): Promise<voi
   await page.route("**/api/documents**", (route) =>
     route.fulfill({ json: ok({ items: [], total: 0, limit: 50, offset: 0, has_next: false }) })
   );
+  // 上の wildcard より後に登録し、より具体的な /recipes を優先させる(Playwright は後勝ち)。
+  await page.route("**/api/documents/doc-1/recipes", (route) =>
+    route.fulfill({ json: ok([]) })
+  );
   await page.route("**/api/knowledge-bases**", (route) =>
     route.fulfill({
       json: ok({ items: [kbDetail(indexedDocumentCount)], total: 1, limit: 20, offset: 0, has_next: false }),
